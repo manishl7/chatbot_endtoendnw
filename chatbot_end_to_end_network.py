@@ -7,6 +7,8 @@ Original file is located at
     https://colab.research.google.com/drive/1oAVnaAfjrD3t6n0sYhebXO5mn2PNktD1
 """
 
+#CHATBOT MODEL_BUG_Fixes
+
 from google.colab import drive
 drive.mount('/content/drive')
 
@@ -40,8 +42,6 @@ for story,question,answer in all_data:
 vocab.add('yes')
 vocab.add('no')
 
-vocab
-
 vocab_size=len(vocab)+1
 
 max_story_len=max(len(data[0])for data in all_data)
@@ -66,11 +66,14 @@ def vectorize_stories(data,word_index=tokenizer.word_index,max_story_len=max_sto
   X=[] #stories
   Xq=[] #question
   Y=[]  #answers
-  for story , query,answer in all_data:
+  for story , query,answer in data:
     x=[word_index[word.lower()]for word in story]
     xq=[word_index[word.lower()]for word in query]
+    
     y=np.zeros(len(word_index)+1)
     y[word_index[answer]]=1
+    #  y=np.zeros(len(word_index)+1)
+    # y[word_index[answer]]=1
 
     X.append(x)
     Xq.append(xq)
@@ -81,10 +84,6 @@ def vectorize_stories(data,word_index=tokenizer.word_index,max_story_len=max_sto
 inputs_train, queries_train , answers_train = vectorize_stories(train_data)
 
 inputs_test, queries_test , answers_test = vectorize_stories(test_data)
-
-inputs_test
-
-sum(answers_test)
 
 #BUILDING A NETWORK
 from keras.models import Sequential,Model
@@ -119,11 +118,9 @@ question_encoded=question_encoder(questions)
 match=dot([input_encoded_m,question_encoded],axes=(2,2))
 match=Activation('softmax')(match)
 
-#Adding
 response=add([match,input_encoded_c])
-response = Permute((2, 1))(response)
+response=Permute((2,1))(response)
 
-#concatenate 
 answers=concatenate([response,question_encoded])
 
 #Passing through Layers
@@ -142,57 +139,34 @@ model.summary()
 
 history = model.fit([inputs_train, queries_train], answers_train,batch_size=32,epochs=200,validation_data=([inputs_test, queries_test], answers_test))
 
-model.save('chatbot_endtoendmemory.h5')
+model.save('chatbot_200.h5')
 pickle.dump(tokenizer,open('tokenizer_chatbox','wb'))
 
 predictions=model.predict([inputs_test,queries_test])
 
-predictions[0][0]
+' '.join(test_data[2][0])
 
-' '.join(test_data[0][0])
+' '.join(test_data[2][1])
 
-' '.join(test_data[0][1])
+' '.join(test_data[2][2])
 
-' '.join(test_data[0][2])
-
-val_max=np.argmax(predictions[0])
+val_max=np.argmax(predictions[2])
 
 for key,value in tokenizer.word_index.items():
   if value==val_max:
     k=key
 print(f"The answer is : {k}" )
-print(f"The probabitility is : {predictions[0][val_max]}")
 
 #PREDICTING ON OUR OWN DATA
 
-my_story='Megan is going to the kitchen . Harry is in the bedroom ' #space after the punc so it's same with our training data format
-my_question= 'Is Harry in the kitchen ? '
-
-my_story.split()
-
-my_data=[(my_story.split(),my_question.split(),'yes')]
-
-story , query , ans = vectorize_stories(my_data)
-
-pred_results = model.predict(([ story, query]))
-val_max = np.argmax(pred_results[0])
-
-for key, val in tokenizer.word_index.items():
-    if val == val_max:
-        k = key
-
-print("Predicted answer is: ", k)
-print("Probability of certainty was: ", pred_results[0][val_max])
-
-#checking the same again
-my_story = "John left the kitchen . Sandra dropped the football in the garden ."
+# Note the whitespace of the periods
+my_story = "John left the garden . Sandra dropped the football in the kitchen ."
 my_question = "Is the football in the kitchen ?"
+
 mydata = [(my_story.split(),my_question.split(),'yes')]
-story1 , query1 , ans1 = vectorize_stories(my_data1)
 my_story,my_ques,my_ans = vectorize_stories(mydata)
-#Predicting Result
 pred_results = model.predict(([ my_story, my_ques]))
-#Generating Result
+#Generate prediction from model
 val_max = np.argmax(pred_results[0])
 
 for key, val in tokenizer.word_index.items():
@@ -200,11 +174,24 @@ for key, val in tokenizer.word_index.items():
         k = key
 
 print("Predicted answer is: ", k)
-print("Probability of certainty was: ", pred_results[0][val_max])
+print("Probability of certainty was: ", (pred_results[0][val_max]*100).round(2),'%')
 
+# Note the whitespace of the periods
+my_story = "John left the garden . Sandra dropped the football in the bedroom ."
+my_question = "Is the football in the garden ?"
 
+mydata = [(my_story.split(),my_question.split(),'yes')]
+my_story,my_ques,my_ans = vectorize_stories(mydata)
+pred_results = model.predict(([ my_story, my_ques]))
+#Generate prediction from model
+val_max = np.argmax(pred_results[0])
 
+for key, val in tokenizer.word_index.items():
+    if val == val_max:
+        k = key
 
+print("Predicted answer is: ", k)
+print("Probability of certainty was: ", (pred_results[0][val_max]*100).round(2),'%')
 
 
 
@@ -326,14 +313,3 @@ print("Probability of certainty was: ", pred_results[0][val_max])
 
 
 
-
-
-
-
-
-
-
-
-dir
-
-cd
